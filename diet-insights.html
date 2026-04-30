@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Calorie Tracker - Go Theme</title>
+    <script src="https://cloudflare.com"></script>
+    <style>
+        body { display: flex; flex-direction: column; align-items: center; background: #2c3e50; color: white; font-family: sans-serif; padding: 20px; }
+        .app-card { background: #deb887; padding: 25px; border-radius: 12px; border: 5px solid #8b4513; box-shadow: 0 0 20px rgba(0,0,0,0.5); width: 100%; max-width: 450px; color: #000; }
+        h2 { text-align: center; margin: 0 0 15px 0; color: #333; }
+        
+        .limit-section { background: rgba(0,0,0,0.1); padding: 10px; border-radius: 8px; margin-bottom: 15px; text-align: center; }
+        .limit-section label { font-weight: bold; font-size: 0.9rem; }
+        
+        .chart-container { margin: 15px 0; height: 220px; background: rgba(255, 255, 255, 0.2); border-radius: 8px; padding: 10px; }
+        
+        input { width: 100%; padding: 10px; margin: 5px 0; border-radius: 5px; border: 1px solid #8b4513; box-sizing: border-box; }
+        #limit-input { width: 80px; display: inline-block; margin-left: 10px; text-align: center; }
+        
+        button { width: 100%; padding: 12px; font-size: 16px; cursor: pointer; background: #e67e22; border: none; color: white; border-radius: 5px; font-weight: bold; margin-top: 10px; }
+        button:hover { background: #d35400; }
+
+        .progress-container { background: #fff; border-radius: 10px; height: 10px; margin: 10px 0; overflow: hidden; border: 1px solid #8b4513; }
+        #progress-bar { height: 100%; width: 0%; background: #000; transition: width 0.5s ease; }
+
+        ul { list-style: none; padding: 0; margin-top: 20px; max-height: 150px; overflow-y: auto; }
+        li { background: rgba(255, 255, 255, 0.5); margin: 5px 0; padding: 8px; border-radius: 5px; display: flex; justify-content: space-between; font-size: 0.9rem; border-left: 4px solid #000; }
+    </style>
+</head>
+<body>
+
+<div class="app-card">
+    <h2>Calorie Tracker</h2>
+    
+    <div class="limit-section">
+        <label>Daily Goal:</label>
+        <input type="number" id="limit-input" value="2000" onchange="updateChart()"> 
+        <span style="font-size: 0.8rem;">kcal</span>
+        <div class="progress-container"><div id="progress-bar"></div></div>
+    </div>
+    
+    <div class="chart-container">
+        <canvas id="caloriesChart"></canvas>
+    </div>
+
+    <input type="text" id="food" placeholder="Food item">
+    <input type="number" id="cals" placeholder="Calories">
+    <button onclick="addEntry()">Add Entry</button>
+
+    <ul id="list"></ul>
+</div>
+
+<script>
+    let foods = [];
+    let calories = [];
+    let myChart;
+
+    window.onload = function() {
+        const ctx = document.getElementById('caloriesChart').getContext('2d');
+        myChart = new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+                labels: ['Remaining'],
+                datasets: [{
+                    data: [2000],
+                    backgroundColor: ['#f0f0f0'], // Start with "Remaining" slice
+                    borderColor: '#8b4513',
+                    borderWidth: 1
+                }]
+            },
+            options: { 
+                responsive: true, 
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false } }
+            }
+        });
+    };
+
+    function updateChart() {
+        const limit = parseInt(document.getElementById('limit-input').value) || 2000;
+        const totalConsumed = calories.reduce((a, b) => a + b, 0);
+        const remaining = Math.max(0, limit - totalConsumed);
+
+        // Update Chart Data: [Food Items..., Remaining]
+        myChart.data.labels = [...foods, 'Remaining'];
+        myChart.data.datasets[0].data = [...calories, remaining];
+        
+        // Dynamic colors: Black/White for food, light grey for remaining
+        const foodColors = foods.map((_, i) => i % 2 === 0 ? '#000000' : '#ffffff');
+        myChart.data.datasets[0].backgroundColor = [...foodColors, '#f0f0f0'];
+        
+        // Update Progress Bar
+        const percent = Math.min(100, (totalConsumed / limit) * 100);
+        document.getElementById('progress-bar').style.width = percent + '%';
+        document.getElementById('progress-bar').style.background = percent > 100 ? '#e74c3c' : '#000';
+
+        myChart.update();
+    }
+
+    function addEntry() {
+        const foodName = document.getElementById('food').value;
+        const calValue = parseInt(document.getElementById('cals').value);
+
+        if (foodName && !isNaN(calValue)) {
+            foods.push(foodName);
+            calories.push(calValue);
+
+            const li = document.createElement('li');
+            li.innerHTML = `<span>${foodName}</span> <strong>${calValue} kcal</strong>`;
+            document.getElementById('list').prepend(li);
+
+            updateChart();
+
+            document.getElementById('food').value = '';
+            document.getElementById('cals').value = '';
+        }
+    }
+</script>
+
+</body>
+</html>
